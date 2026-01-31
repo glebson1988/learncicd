@@ -12,10 +12,15 @@ jobs:
     permissions:
       contents: read
       id-token: write
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
     steps:
       - name: Check out code
         uses: actions/checkout@v4
+
+      - name: Install goose
+        run: go install github.com/pressly/goose/v3/cmd/goose@latest
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -36,6 +41,9 @@ jobs:
 
       - name: Build and push image
         run: gcloud builds submit --tag us-central1-docker.pkg.dev/project-50ac0b85-b899-4cd5-bc4/notely-ar-repo/notely:${{ github.sha }} .
+
+      - name: Run migrations
+        run: ./scripts/migrateup.sh
 
       - name: Deploy to Cloud Run
         run: gcloud run deploy notely --image us-central1-docker.pkg.dev/project-50ac0b85-b899-4cd5-bc4/notely-ar-repo/notely:${{ github.sha }} --region us-central1 --allow-unauthenticated --project project-50ac0b85-b899-4cd5-bc4 --max-instances=4
